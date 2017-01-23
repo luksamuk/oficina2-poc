@@ -9,6 +9,9 @@
 (define *max-spd* (make-vector 2 0.0))
 (define *accel* 0.046875)
 (define *air-accel* 0.1875)
+(define *airdrag* 0.96875)
+(define *airdrag-minx* 0.0125)
+(define *airdrag-miny* -4.0)
 (define *decel* 0.5)
 (define *grav*  0.21875)
 (define *jmpstr* -6.5)
@@ -23,6 +26,8 @@
 (define :act-crouch 4)
 (define *action* :act-none)
 
+(define *rightbound* 1280.0)
+
 
 (define clamp
   (lambda (val min max)
@@ -36,6 +41,9 @@
 	(begin
 	  (set! *accel* 0.046875)
 	  (set! *air-accel* 0.1875)
+	  (set! *airdrag* 0.96875)
+	  (set! *airdrag-minx* 0.0125)
+	  (set! *airdrag-miny* -4.0)
 	  (vector-set! *max-spd* :x 12.0)
 	  (vector-set! *top-spd* :x 6.0)
 	  (set! *decel* 0.5)
@@ -134,12 +142,19 @@
 		    ))
 	      ;; Left boundary limit
 	      (if (and (<= (- (vector-ref (pos? +this+) :x) 10.0) 0.0)
-		       (< (vector-ref lstk :x) 0.0))
+		       (< currspd 0.0))
 		  (begin
 		    (set! currspd 0.0)
-		    (trl! '(10.0 (vector-ref (pos? +this+) :y) 0.0) #t +this+))
-		  
-		  )
+		    (trl! '(10.0 (vector-ref (pos? +this+) :y) 0.0) #t +this+)))
+
+	      ;; Right boundary limit (temporary)
+	      (if (and (>= (+ (vector-ref (pos? +this+) :x) 10.0) *rightbound*)
+		       (> currspd 0.0))
+		  (begin
+		    (set! currspd 0.0)
+		    (trl! '((- *rightbound* 10.0)
+			    (vector-ref (pos? +this+) :y)
+			    0.0) #t +this+)))
 	      
 	      ;; Give back X speed
 	      (set! currspd (clamp currspd
@@ -193,6 +208,13 @@
 	      (vector-set! *speed* :y currspd))
 
 
+	    ;; Air Drag
+	    (if (and (< (vector-ref *speed* :y) 0.0)
+		     (> (vector-ref *speed* :y) *airdrag-miny*)
+		     (>= (abs (vector-ref *speed* :x)) *airdrag-minx*))
+		(vector-set! *speed* :x
+			     (* (vector-ref *speed* :x) *airdrag*)))
+	    
 	    
 	    
 	    ;; Add speed to position

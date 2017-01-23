@@ -21,10 +21,10 @@ void PlayerCharacter::load() {
     sonic = ofTexturePool::load("res/sonic.png");
     super = ofTexturePool::load("res/supersonic.png");
     sprite.init(sonic, glm::uvec2(60, 60), false);
-    sprite.setPosition(glm::vec2(0.0f, -15.0f));
+    sprite.setPosition(glm::vec2(0.0f, -16.0f));
 
     ofdword stopped[]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    					   0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 4, 4 };
+    			   0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 4, 4 };
     ofdword walking[]  = { 5, 6, 7, 8, 9, 10 };
     ofdword running[]  = { 11, 12, 13, 14 };
     ofdword rolling[]  = { 15, 16, 17, 16, 19, 16, 21, 16 };
@@ -215,6 +215,8 @@ void GameScreen::draw() {
 	tilerender.render(pos, vp);
 	pos.x += 128.0f;
     }
+    pos.y -= 128.0f;
+    tilerender.render(pos, vp);
     
     player.draw(vp);
 }
