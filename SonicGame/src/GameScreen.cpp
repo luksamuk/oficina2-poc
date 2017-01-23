@@ -91,6 +91,23 @@ void PlayerCharacter::load() {
             	return scm->vptr->mk_real(scm, anim->GetDefaultAnimationSpeed());
             });
 
+    script.regFunc("animation-setrunning!",
+		   [] (scheme* scm, pointer args) -> pointer
+		   {
+		       if(args != scm->NIL)
+		       {
+			   if(pair_car(args) == scm->T || pair_car(args) == scm->F)
+			   {
+			       anim->SetAnimationRunning((pair_car(args) == scm->T));
+			   }
+			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+				      "Animation running state must be #t or #f.\n");
+		       }
+		       else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+				  "Must provide arguments for running animation\n");
+		       return scm->NIL;
+		   });
+
     script.load("res/GameCharacter.scm");
 }
 
