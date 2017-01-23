@@ -36,7 +36,7 @@
 
 (define def-player-values
   (lambda ()
-    (if (not *super*)
+    (if (not (super?))
 	;; Sonic
 	(begin
 	  (set! *accel* 0.046875)
@@ -67,8 +67,7 @@
   (lambda () 
     (set! *action* :act-none)
     (animation-setrunning! (not *paused*))
-    (set! *super* #f)
-    (setsuper! *super*)
+    (setsuper! #f)
     (def-player-values)
     (trl! '((/ 640.0 16.0)
 	    (/ 360.0 2.0)
@@ -222,6 +221,13 @@
 		    (vector-ref *speed* :y)
 		    0.0) #f +this+)
 
+	    ;; Check for super state
+	    (if (not (eq? *super* (super?)))
+		(begin
+		  (set! *super* (super?))
+		  (def-player-values)))
+	    
+	    
 	    ;; Change animation according to speed
 	    (let ((currspd (abs (vector-ref *speed* :x))))
 	      (if (and *ground*
@@ -292,8 +298,7 @@
 	  ;; Super state
 	  (if (btntap? :pad-y :player-one)
 	      (begin
-		(set! *super* (not *super*))
-		(setsuper! *super*)
+		(setsuper! (not (super?)))
 		(def-player-values)))
 	  
 	  ))))

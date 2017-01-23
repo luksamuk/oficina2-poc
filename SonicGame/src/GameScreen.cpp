@@ -113,22 +113,34 @@ void PlayerCharacter::load() {
 		       return scm->NIL;
 		   });
 
-    script.regFunc("setsuper!",
-		   [] (scheme* scm, pointer args) -> pointer
-		   {
-		       if(args != scm->NIL)
-		       {
-			   if(pair_car(args) == scm->T || pair_car(args) == scm->F)
-			   {
-			       m_super = (pair_car(args) == scm->T);
-			   }
-			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-				      "Super state must be #t or #f.\n");
-		       }
-		       else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-				  "Must provide arguments for super state\n");
-		       return scm->NIL;
-		   });
+    auto superfunc =
+	[] (scheme* scm, pointer args) -> pointer
+	{
+	    if(args != scm->NIL)
+	    {
+		if(pair_car(args) == scm->T || pair_car(args) == scm->F)
+		{
+		    m_super = (pair_car(args) == scm->T);
+		}
+		else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+			   "Super state must be #t or #f.\n");
+	    }
+	    else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+		       "Must provide arguments for super state\n");
+	    return scm->NIL;
+	};
+
+    auto issuper =
+	[] (scheme* scm, pointer args) -> pointer
+	{
+	    return (m_super ? scm->T : scm->F);
+	};
+    
+    script.regFunc("setsuper!", superfunc);
+    ofScmDefineFunc("setsuper!", superfunc);
+
+    script.regFunc("super?", issuper);
+    ofScmDefineFunc("super?", issuper);
 
     script.load("res/GameCharacter.scm");
 }
@@ -138,6 +150,8 @@ void PlayerCharacter::unload() {
     ofTexturePool::unload(sonic);
     ofTexturePool::unload(super);
     script.unload();
+    ofScmUndefineFunc("setsuper!");
+    ofScmUndefineFunc("super?");
 }
 
 void PlayerCharacter::update(float dt) {
