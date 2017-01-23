@@ -9,6 +9,8 @@ using namespace oficina;
 class PlayerCharacter : public oficina::ofEntity
 {
 private:
+    ofTexture sonic,
+	      super;
     ofAnimator sprite;
 public:
     void init();
@@ -22,6 +24,8 @@ class GameScreen : public oficina::ofCanvas
 {
 private:
     PlayerCharacter player;
+    ofTexture       tile;
+    ofTextureRenderer tilerender;
     glm::vec2       cameraPosition;
 public:
     void init();

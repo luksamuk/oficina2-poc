@@ -9,6 +9,8 @@ using namespace oficina;
 glm::mat4 vp;
 
 ofAnimator* anim;
+bool m_super = false,
+     m_oldsuper = false;
 
 void PlayerCharacter::init() {
     script.init("GameCharacter", this);
@@ -16,7 +18,10 @@ void PlayerCharacter::init() {
 }
 
 void PlayerCharacter::load() {
-    sprite.init(ofTexturePool::load("res/sonic.png"), glm::uvec2(60, 60), true);
+    sonic = ofTexturePool::load("res/sonic.png");
+    super = ofTexturePool::load("res/supersonic.png");
+    sprite.init(sonic, glm::uvec2(60, 60), false);
+    sprite.setPosition(glm::vec2(0.0f, -15.0f));
 
     ofdword stopped[]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     					   0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 4, 4 };
@@ -108,11 +113,30 @@ void PlayerCharacter::load() {
 		       return scm->NIL;
 		   });
 
+    script.regFunc("setsuper!",
+		   [] (scheme* scm, pointer args) -> pointer
+		   {
+		       if(args != scm->NIL)
+		       {
+			   if(pair_car(args) == scm->T || pair_car(args) == scm->F)
+			   {
+			       m_super = (pair_car(args) == scm->T);
+			   }
+			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+				      "Super state must be #t or #f.\n");
+		       }
+		       else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+				  "Must provide arguments for super state\n");
+		       return scm->NIL;
+		   });
+
     script.load("res/GameCharacter.scm");
 }
 
 void PlayerCharacter::unload() {
     sprite.unload();
+    ofTexturePool::unload(sonic);
+    ofTexturePool::unload(super);
     script.unload();
 }
 
@@ -121,7 +145,13 @@ void PlayerCharacter::update(float dt) {
     sprite.update(dt);
     script.update(dt);
 
-    if(ofButtonTap(ofPadY))
+    if(m_super != m_oldsuper) {
+	m_oldsuper = m_super;
+	sprite.SetAnimationTexture(m_super ? super : sonic);
+	ofLog(ofLogInfo, "Changing to %s...\n", m_super ? "Super Sonic" : "Sonic");
+    }
+
+    if(ofButtonTap(ofPadBack))
     	script.load("res/GameCharacter.scm");
 }
 
@@ -150,11 +180,15 @@ void GameScreen::init() {
 
 void GameScreen::load() {
     player.load();
+    tile  = ofTexturePool::load("res/tile.png");
+    tilerender.init(tile);
     //ofBenchmarkStart(2.0f);
 }
 
 void GameScreen::unload() {
     player.unload();
+    tilerender.unload();
+    ofTexturePool::unload(tile);
     //ofBenchmarkEnd();
 }
 
@@ -163,6 +197,7 @@ void GameScreen::update(float dt) {
 
 	if(player.getPosition().x >= 320.0f)
 		cameraPosition.x = player.getPosition().x - 320.0f;
+	else cameraPosition.x = 0.0f;
 
     vp  = glm::ortho(0.0f, vwprt.x, -vwprt.y, 0.0f, 1.0f, 10.0f)
             * glm::lookAt(glm::vec3(cameraPosition.x, cameraPosition.y, -1.2f),
@@ -175,5 +210,11 @@ void GameScreen::update(float dt) {
 }
 
 void GameScreen::draw() {
+    glm::vec2 pos = glm::vec2(64.0f, 308.0f);
+    for(int i = 0; i < 10; i++) {
+	tilerender.render(pos, vp);
+	pos.x += 128.0f;
+    }
+    
     player.draw(vp);
 }

@@ -2,11 +2,13 @@
 ;;;; Sonic behaviour
 
 (define *paused* #f)
+(define *super* #f)
 
 (define *speed* (make-vector 2 0.0))
 (define *top-spd* (make-vector 2 0.0))
 (define *max-spd* (make-vector 2 0.0))
 (define *accel* 0.046875)
+(define *air-accel* 0.1875)
 (define *decel* 0.5)
 (define *grav*  0.21875)
 (define *jmpstr* -6.5)
@@ -27,11 +29,39 @@
     (if (< val min) min (if (> val max) max val))))
 
 
+(define def-player-values
+  (lambda ()
+    (if (not *super*)
+	;; Sonic
+	(begin
+	  (set! *accel* 0.046875)
+	  (set! *air-accel* 0.1875)
+	  (vector-set! *max-spd* :x 12.0)
+	  (vector-set! *top-spd* :x 6.0)
+	  (set! *decel* 0.5)
+	  (set! *grav* 0.21875)
+	  (set! *jmpstr* -6.5)
+	  (set! *minjmp* -4.0))
+	;; Super Sonic
+	(begin
+	  (set! *accel* 0.1875)
+	  (set! *air-accel* 0.375)
+	  (vector-set! *top-spd* :x 10.0)
+	  (set! *decel* 1.0)
+	  (set! *jmpstr* -8.0)))
+    ))
+
+
+
+
 
 (define init
   (lambda () 
     (set! *action* :act-none)
     (animation-setrunning! (not *paused*))
+    (set! *super* #f)
+    (setsuper! *super*)
+    (def-player-values)
     (trl! '((/ 640.0 16.0)
 	    (/ 360.0 2.0)
 	    0.0)
@@ -49,12 +79,17 @@
 	(begin	  
 	  (let ((lstk (lstick? :player-one)))
 	    ;; Acceleration
-	    (if (or (= *action* :act-none)
-		    (= *action* :act-jmp)
-		    (= *action* :act-skid))
+	    (if (and (< (abs (vector-ref *speed* :x))
+			(vector-ref *top-spd* :x))
+		     (or (= *action* :act-none)
+			 (= *action* :act-jmp)
+			 (= *action* :act-skid)))
 		(vector-set! *speed* :x
 			     (+ (vector-ref *speed* :x)
-				(* (vector-ref lstk :x) *accel*))))
+				(* (vector-ref lstk :x)
+				   (if *ground*
+				       *accel*
+				       *air-accel*)))))
 
 	    ;; X Axis
 	    (let ((currspd (vector-ref *speed* :x)))
@@ -98,11 +133,18 @@
 			  (set! currspd 0.0)))
 		    ))
 	      ;; Left boundary limit
-	      (if (and (<= (vector-ref (pos? +this+) :x) 0.0)
+	      (if (and (<= (- (vector-ref (pos? +this+) :x) 10.0) 0.0)
 		       (< (vector-ref lstk :x) 0.0))
-		  (set! currspd 0.0))
+		  (begin
+		    (set! currspd 0.0)
+		    (trl! '(10.0 (vector-ref (pos? +this+) :y) 0.0) #t +this+))
+		  
+		  )
+	      
 	      ;; Give back X speed
-	      (set! currspd (clamp currspd -12.0 12.0))
+	      (set! currspd (clamp currspd
+				   (- (vector-ref *max-spd* :x))
+				   (vector-ref *max-spd* :x)))
 	      (vector-set! *speed* :x currspd))
 
 
@@ -196,8 +238,20 @@
 			      (* (- (animation-defspd?) 3.0)
 				 spd-perc)))
 			  )))
-		     )))
-	      )
+		     ))
+		  ;; Other animation speed settings
+		  (begin
+		    (cond
+		     ((= *action* :act-jmp)
+		      (let ((spd-perc (/ currspd 12.0)))
+			(animation-setspd!
+			 (- (animation-defspd?)
+			    (* (- (animation-defspd?) 1.0)
+			       spd-perc)))
+			)
+		      )
+		    )
+		  )))
 
 	    
 	    ;; Change direction according to speed
@@ -211,4 +265,13 @@
 		  (scl! '(-1.0 1.0 1.0) #t +this+))))
 	      )
 
-	    )))))
+	    )
+
+	  ;; Super state
+	  (if (btntap? :pad-y :player-one)
+	      (begin
+		(set! *super* (not *super*))
+		(setsuper! *super*)
+		(def-player-values)))
+	  
+	  ))))
