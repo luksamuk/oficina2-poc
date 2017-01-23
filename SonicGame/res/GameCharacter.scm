@@ -15,6 +15,8 @@
 (define :act-none 0)
 (define :act-jmp  1)
 (define :act-skid 2)
+(define :act-lookup 3)
+(define :act-crouch 4)
 (define *action* :act-none)
 
 
@@ -36,9 +38,11 @@
   (lambda (dt)
     (let ((lstk (lstick? :player-one)))
       ;; Acceleration
-      (vector-set! *speed* :x
-		   (+ (vector-ref *speed* :x)
-		      (* (vector-ref lstk :x) *accel*)))
+      (if (or (= *action* :act-none)
+	      (= *action* :act-jmp))
+	  (vector-set! *speed* :x
+		       (+ (vector-ref *speed* :x)
+			  (* (vector-ref lstk :x) *accel*))))
 
       ;; X Axis
       (let ((currspd (vector-ref *speed* :x)))
@@ -119,7 +123,8 @@
 	    ;; Else
 	    (begin
 	      ;; Jumping
-	      (if (and (= *action* :act-none)
+	      (if (and (or (= *action* :act-none)
+			   (= *action* :act-lookup))
 		       (btntap? :pad-a :player-one))
 		  (begin
 		    (animation-set! "Roll")
@@ -141,17 +146,25 @@
       ;; Change animation according to speed
       (let ((currspd (abs (vector-ref *speed* :x))))
 	(if (and *ground*
-		 (= *action* :act-none))
+		 (or (= *action* :act-none)
+		     (= *action* :act-crouch)
+		     (= *action* :act-lookup)))
 	    (begin
 	      (cond
 	       ((= currspd 0.0)
 		(cond
 		 ((= (vector-ref lstk :y) 0.0)
-		  (animation-set! "Idle"))
+		  (begin
+		    (animation-set! "Idle")
+		    (set! *action* :act-none)))
 		 ((> (vector-ref lstk :y) 0.0)
-		  (animation-set! "Crouch"))
+		  (begin
+		    (animation-set! "Crouch")
+		    (set! *action* :act-crouch)))
 		 ((< (vector-ref lstk :y) 0.0)
-		  (animation-set! "LookUp"))))
+		  (begin
+		    (animation-set! "LookUp")
+		    (set! *action* :act-lookup)))))
 
 	       ((>= currspd 9.95)
 		(animation-set! "Peel"))
