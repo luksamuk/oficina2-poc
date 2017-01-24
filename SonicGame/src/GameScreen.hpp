@@ -25,6 +25,7 @@ class GameScreen : public oficina::ofCanvas
 private:
     PlayerCharacter player;
     ofTexture       tile;
+    ofTexture       sign;
     ofTextureRenderer tilerender;
     glm::vec2       cameraPosition;
 public:

@@ -41,7 +41,7 @@ void PlayerCharacter::load() {
     sprite.reg("Roll",  8, rolling, 8.0f, true);
     sprite.reg("Skid",  1, skidding, 1.0f);
     sprite.reg("Peel",  4, peelout, 2.0f, true);
-    sprite.reg("Push",  4, pushing, 16.0f, true);
+    sprite.reg("Push",  4, pushing, 32.0f, true);
     sprite.reg("Crouch", 1, crouch, 1.0f);
     sprite.reg("LookUp", 1, lookup, 1.0f);
     sprite.reg("Dead", 1, death, 1.0f);
@@ -180,6 +180,9 @@ void PlayerCharacter::draw(glm::mat4 vp) {
 
 
 
+
+
+
 void GameScreen::init() {
     ofSetVSync(true);
     glm::vec2 vwprt = glm::vec2(640.0f, 360.0f);
@@ -194,8 +197,9 @@ void GameScreen::init() {
 
 void GameScreen::load() {
     player.load();
-    tile  = ofTexturePool::load("res/tile.png");
-    tilerender.init(tile);
+    //tile  = ofTexturePool::load("res/tile.png");
+    tile = ofTexturePool::load("res/IsolatedIsland.png");
+    tilerender.init(tile, glm::uvec2(130));
     //ofBenchmarkStart(2.0f);
 }
 
@@ -224,13 +228,23 @@ void GameScreen::update(float dt) {
 }
 
 void GameScreen::draw() {
-    glm::vec2 pos = glm::vec2(64.0f, 308.0f);
-    for(int i = 0; i < 10; i++) {
-	tilerender.render(pos, vp);
-	pos.x += 128.0f;
+    glm::vec2 pos = glm::vec2(64.0f, 192.0f + 65.0f);
+    for(int i = 0; i < 30; i++) {
+	   tilerender.render(pos, vp, ((i % 2) ? 37 : 170));
+       tilerender.render(glm::vec2(pos.x, pos.y - 128.0f), vp, /*21 155*/ (i % 2) ? 105 : 104);
+       if(!(i % 2)) tilerender.render(glm::vec2(pos.x, pos.y - 256.0f), vp, 102);
+       tilerender.render(glm::vec2(pos.x, pos.y + 128.0f), vp,
+                        151 + (i % 3));
+	   pos.x += 128.0f;
     }
+    pos.y += 128.0f;
+    tilerender.render(pos, vp, 171);
     pos.y -= 128.0f;
-    tilerender.render(pos, vp);
-    
+    tilerender.render(pos, vp, 50);
+    pos.y -= 128.0f;
+    tilerender.render(pos, vp, 61);
+    pos.y -= 128.0f;
+    tilerender.render(pos, vp, 65);
+
     player.draw(vp);
 }

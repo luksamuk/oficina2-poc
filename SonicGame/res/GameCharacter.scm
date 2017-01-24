@@ -18,16 +18,18 @@
 (define *minjmp* -4.0)
 
 (define *ground* #t)
+(define *direction* 1.0)
 
 (define :act-none 0)
 (define :act-jmp  1)
 (define :act-skid 2)
 (define :act-lookup 3)
 (define :act-crouch 4)
+(define :act-push 5)
 (define *action* :act-none)
 
-(define *rightbound* 1280.0)
-
+(define *rightbound* 3840.0)
+(define *fakeground-y* 192.0)
 
 (define clamp
   (lambda (val min max)
@@ -69,8 +71,9 @@
     (animation-setrunning! (not *paused*))
     (setsuper! #f)
     (def-player-values)
+    (set! *direction* 1.0)
     (trl! '((/ 640.0 16.0)
-	    (/ 360.0 2.0)
+	    *fakeground-y*
 	    0.0)
 	  #t +this+)))
 
@@ -174,14 +177,10 @@
 		    ;; Fake ground
 		    (let ((mypos (pos? +this+)))
 		      (if (>= (vector-ref mypos :y)
-			      (/ 360.0 2.0))
+			      *fakeground-y*)
 			  (begin
 			    (set! *ground* #t)
 			    (set! currspd 0.0)
-			    (trl! '((vector-ref mypos :x)
-				    (/ 360.0 2.0)
-				    0.0)
-				  #t +this+)
 			    (set! *action* :act-none)
 			    )))
 		    
@@ -195,13 +194,24 @@
 		  (begin
 		    ;; Jumping
 		    (if (and (or (= *action* :act-none)
-				 (= *action* :act-lookup))
+				 (= *action* :act-lookup)
+				 (= *action* :act-push))
 			     (btntap? :pad-a :player-one))
 			(begin
 			  (animation-set! "Roll")
 			  (set! *ground* #f)
 			  (set! currspd *jmpstr*)
 			  (set! *action* :act-jmp)))
+		    (let ((ypos
+			   (- *fakeground-y*
+			      (* 2 (cos (/ (- (vector-ref (pos? +this+) :x)
+				      (* (truncate
+					  (/ (vector-ref (pos? +this+) :x) 128))
+					 128)) 24.0))))))
+		      (trl! '((vector-ref (pos? +this+) :x)
+			      ypos
+			      0.0)
+			    #t +this+))
 		    ))
 	      ;; Give back Y speed
 	      (vector-set! *speed* :y currspd))
@@ -233,15 +243,24 @@
 	      (if (and *ground*
 		       (or (= *action* :act-none)
 			   (= *action* :act-crouch)
-			   (= *action* :act-lookup)))
+			   (= *action* :act-lookup)
+			   (= *action* :act-push)))
 		  (begin
 		    (cond
 		     ((= currspd 0.0)
 		      (cond
 		       ((= (vector-ref lstk :y) 0.0)
-			(begin
-			  (animation-set! "Idle")
-			  (set! *action* :act-none)))
+			(cond
+			 ((and (> (vector-ref lstk :x) 0.0)
+			       (>= (+ (vector-ref (pos? +this+) :x) 10.0)
+				   *rightbound*))
+			  (begin
+			    (animation-set! "Push")
+			    (set! *action* :act-push)))
+			 (else
+			  (begin
+			    (animation-set! "Idle")
+			    (set! *action* :act-none)))))
 		       ((> (vector-ref lstk :y) 0.0)
 			(begin
 			  (animation-set! "Crouch")
@@ -278,21 +297,19 @@
 			       spd-perc)))
 			)
 		      )
-		    )
-		  )))
+		     )
+		    )))
 
 	    
 	    ;; Change direction according to speed
-	    (let ((currspd (vector-ref *speed* :x)))
-	      (cond
-	       ((> currspd 0.0)
-		(begin
-		  (scl! '(1.0 1.0 1.0) #t +this+)))
-	       ((< currspd 0.0)
-		(begin	
-		  (scl! '(-1.0 1.0 1.0) #t +this+))))
-	      )
-
+	    (if (or (= *action* :act-none)
+		    (= *action* :act-jmp))
+		  (cond
+		   ((> (vector-ref lstk :x) 0.0)
+		    (set! *direction* 1.0))
+		   ((< (vector-ref lstk :x) 0.0)
+		    (set! *direction* -1.0))))
+	    (scl! '(*direction* 1.0 1.0) #t +this+)
 	    )
 
 	  ;; Super state
