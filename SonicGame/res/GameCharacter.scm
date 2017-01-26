@@ -72,7 +72,7 @@
     (setsuper! #f)
     (def-player-values)
     (set! *direction* 1.0)
-    (trl! '((/ 640.0 16.0)
+    (trl! '(128.0
 	    *fakeground-y*
 	    0.0)
 	  #t +this+)))

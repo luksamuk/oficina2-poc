@@ -6,7 +6,7 @@
 #include <oficina2/ofscheme.hpp>
 using namespace oficina;
 
-glm::mat4 vp;
+glm::mat4 vp, projection, view, parallax_vp;
 
 ofAnimator* anim;
 bool m_super = false,
@@ -52,49 +52,49 @@ void PlayerCharacter::load() {
     
 
     script.regFunc("animation-set!",
-            [] (scheme* scm, pointer args) -> pointer
-            {
-                if(args != scm->NIL)
-                {
-                    if(scm->vptr->is_string(pair_car(args)))
-                    {
-                        std::string animName = scm->vptr->string_value(pair_car(args));
-                        anim->SetAnimation(animName);
-                    }
-                    else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-                            "Animation name must be string.\n");
-                }
-                return scm->NIL;
-            });
+		   [] (scheme* scm, pointer args) -> pointer
+		   {
+		       if(args != scm->NIL)
+		       {
+			   if(scm->vptr->is_string(pair_car(args)))
+			   {
+			       std::string animName = scm->vptr->string_value(pair_car(args));
+			       anim->SetAnimation(animName);
+			   }
+			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+				      "Animation name must be string.\n");
+		       }
+		       return scm->NIL;
+		   });
 
     script.regFunc("animation-setspd!",
-            [] (scheme* scm, pointer args) -> pointer
-            {
-                if(args != scm->NIL)
-                {
-                	pointer p = scheme_eval(scm, pair_car(args));
-                    if(scm->vptr->is_number(p))
-                    {
-                        float animspd = scm->vptr->rvalue(pair_car(args));
-                        anim->SetAnimationSpeed(animspd);
-                    }
-                    else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-                            "Animation speed must be number.\n");
-                }
-                return scm->NIL;
-            });
+		   [] (scheme* scm, pointer args) -> pointer
+		   {
+		       if(args != scm->NIL)
+		       {
+			   pointer p = scheme_eval(scm, pair_car(args));
+			   if(scm->vptr->is_number(p))
+			   {
+			       float animspd = scm->vptr->rvalue(pair_car(args));
+			       anim->SetAnimationSpeed(animspd);
+			   }
+			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
+				      "Animation speed must be number.\n");
+		       }
+		       return scm->NIL;
+		   });
 
     script.regFunc("animation-spd?",
-            [] (scheme* scm, pointer args) -> pointer
-            {
-            	return scm->vptr->mk_real(scm, anim->GetAnimationSpeed());
-            });
+		   [] (scheme* scm, pointer args) -> pointer
+		   {
+		       return scm->vptr->mk_real(scm, anim->GetAnimationSpeed());
+		   });
 
     script.regFunc("animation-defspd?",
-            [] (scheme* scm, pointer args) -> pointer
-            {
-            	return scm->vptr->mk_real(scm, anim->GetDefaultAnimationSpeed());
-            });
+		   [] (scheme* scm, pointer args) -> pointer
+		   {
+		       return scm->vptr->mk_real(scm, anim->GetDefaultAnimationSpeed());
+		   });
 
     script.regFunc("animation-setrunning!",
 		   [] (scheme* scm, pointer args) -> pointer
@@ -186,11 +186,13 @@ void PlayerCharacter::draw(glm::mat4 vp) {
 void GameScreen::init() {
     ofSetVSync(true);
     glm::vec2 vwprt = glm::vec2(640.0f, 360.0f);
-    cameraPosition = glm::vec2(0.0f, 0.0f);
-    vp  = glm::ortho(0.0f, vwprt.x, -vwprt.y, 0.0f, 1.0f, 10.0f)
-            * glm::lookAt(glm::vec3(cameraPosition.x, cameraPosition.y, -1.2f),
-                          glm::vec3(cameraPosition.x, cameraPosition.y, 0.0f),
-                          glm::vec3(0.0f, -1.0f, 0.0f));
+    cameraPosition = glm::vec2(0.0f, 16.0f);
+    projection = glm::ortho(0.0f, vwprt.x, -vwprt.y, 0.0f, 1.0f, 10.0f);
+    view = glm::lookAt(glm::vec3(cameraPosition.x, cameraPosition.y, -1.2f),
+		       glm::vec3(cameraPosition.x, cameraPosition.y, 0.0f),
+		       glm::vec3(0.0f, -1.0f, 0.0f));
+    vp = projection * view;
+    parallax_vp = projection * view;
 
     player.init();
 }
@@ -211,17 +213,18 @@ void GameScreen::unload() {
 }
 
 void GameScreen::update(float dt) {
-	glm::vec2 vwprt = glm::vec2(640.0f, 360.0f);
+    if(player.getPosition().x >= 320.0f)
+	cameraPosition.x = player.getPosition().x - 320.0f;
+    else cameraPosition.x = 0.0f;
 
-	if(player.getPosition().x >= 320.0f)
-		cameraPosition.x = player.getPosition().x - 320.0f;
-	else cameraPosition.x = 0.0f;
+    glm::vec2 cameraAdd = ofGetRightStick() * 64.0f;
 
-    vp  = glm::ortho(0.0f, vwprt.x, -vwprt.y, 0.0f, 1.0f, 10.0f)
-            * glm::lookAt(glm::vec3(cameraPosition.x, cameraPosition.y, -1.2f),
-                          glm::vec3(cameraPosition.x, cameraPosition.y, 0.0f),
-                          glm::vec3(0.0f, -1.0f, 0.0f));
+    glm::vec2 cameraFinal = cameraPosition + cameraAdd;
 
+    view =  glm::lookAt(glm::vec3(cameraFinal.x, cameraFinal.y, -1.2f),
+			glm::vec3(cameraFinal.x, cameraFinal.y, 0.0f),
+			glm::vec3(0.0f, -1.0f, 0.0f));
+    vp = projection * view;
 
     player.update(dt);
     //ofBenchmarkUpdateCall();
@@ -229,13 +232,60 @@ void GameScreen::update(float dt) {
 
 void GameScreen::draw() {
     glm::vec2 pos = glm::vec2(64.0f, 192.0f + 65.0f);
+    glm::vec2 parpos = pos;
+    parpos.y = 65.0f;
+
+    // Parallax
+    // Layer 0
+    for(int i = 0; i < 2; i++) {
+	tilerender.render(parpos,                                 parallax_vp, 158);
+	tilerender.render(glm::vec2(parpos.x + 128.0f, parpos.y), parallax_vp, 159);
+	tilerender.render(glm::vec2(parpos.x + 256.0f, parpos.y), parallax_vp, 167);
+	tilerender.render(glm::vec2(parpos.x + 384.0f, parpos.y), parallax_vp, 168);
+	parpos.x += 512.0f;
+    }
+    parpos.x = pos.x;
+    parpos.y += 128.0f;
+    // Layer 1
+    for(int i = 0; i < 3; i++) {
+	tilerender.render(parpos,                                 parallax_vp, 112);
+	tilerender.render(glm::vec2(parpos.x + 128.0f, parpos.y), parallax_vp, 160);
+	parpos.x += 256.0f;
+    }
+    parpos.x = pos.x;
+    parpos.y += 128.0f;
+    // Layer 2
+    for(int i = 0; i < 8; i++) {
+	tilerender.render(parpos, parallax_vp, 161);
+	parpos.x += 128.0f;
+    }
+    parpos.x = pos.x;
+    parpos.y += 128.0f;
+    // Layer 3
+    for(int i = 0; i < 2; i++) {
+	tilerender.render(parpos,                                 parallax_vp, 162);
+	tilerender.render(glm::vec2(parpos.x + 128.0f, parpos.y), parallax_vp, 163);
+	tilerender.render(glm::vec2(parpos.x + 256.0f, parpos.y), parallax_vp, 164);
+	tilerender.render(glm::vec2(parpos.x + 384.0f, parpos.y), parallax_vp, 166);
+	parpos.x += 512.0f;
+    }
+
+    
+    
+    // Level
     for(int i = 0; i < 30; i++) {
 	   tilerender.render(pos, vp, ((i % 2) ? 37 : 170));
-       tilerender.render(glm::vec2(pos.x, pos.y - 128.0f), vp, /*21 155*/ (i % 2) ? 105 : 104);
-       if(!(i % 2)) tilerender.render(glm::vec2(pos.x, pos.y - 256.0f), vp, 102);
-       tilerender.render(glm::vec2(pos.x, pos.y + 128.0f), vp,
-                        151 + (i % 3));
-	   pos.x += 128.0f;
+
+       if(i < 2) {
+            tilerender.render(glm::vec2(pos.x, pos.y - 128.0f), vp, (i == 0) ? 256 : 257);
+       }
+       else
+       {
+            tilerender.render(glm::vec2(pos.x, pos.y - 128.0f), vp, (i % 2) ? 105 : 104);
+            if(!(i % 2)) tilerender.render(glm::vec2(pos.x, pos.y - 256.0f), vp, 102);
+       }
+       tilerender.render(glm::vec2(pos.x, pos.y + 128.0f), vp, 151 + (i % 3));
+       pos.x += 128.0f;
     }
     pos.y += 128.0f;
     tilerender.render(pos, vp, 171);
