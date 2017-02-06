@@ -3,6 +3,7 @@
 #include <oficina2/canvas.hpp>
 #include <oficina2/render.hpp>
 #include <oficina2/entity.hpp>
+#include <oficina2/ofscheme.hpp>
 
 using namespace oficina;
 
@@ -12,6 +13,7 @@ private:
     ofTexture sonic,
 	      super;
     ofAnimator sprite;
+    ofScheme*  script;
 public:
     void init();
     void load();

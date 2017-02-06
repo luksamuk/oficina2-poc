@@ -3,7 +3,6 @@
 #include <oficina2/io.hpp>
 #include <oficina2/input.hpp>
 #include <oficina2/benchmark.hpp>
-#include <oficina2/ofscheme.hpp>
 using namespace oficina;
 
 glm::mat4 vp, projection, view, parallax_vp;
@@ -13,7 +12,8 @@ bool m_super = false,
      m_oldsuper = false;
 
 void PlayerCharacter::init() {
-    script.init("GameCharacter", this);
+    script = new ofScheme;
+    AddComponent("script", script);
     anim = &sprite;
 }
 
@@ -51,7 +51,7 @@ void PlayerCharacter::load() {
     //sprite.SetAnimation("Run");
     
 
-    script.regFunc("animation-set!",
+    script->regFunc("animation-set!",
 		   [] (scheme* scm, pointer args) -> pointer
 		   {
 		       if(args != scm->NIL)
@@ -67,7 +67,7 @@ void PlayerCharacter::load() {
 		       return scm->NIL;
 		   });
 
-    script.regFunc("animation-setspd!",
+    script->regFunc("animation-setspd!",
 		   [] (scheme* scm, pointer args) -> pointer
 		   {
 		       if(args != scm->NIL)
@@ -84,19 +84,19 @@ void PlayerCharacter::load() {
 		       return scm->NIL;
 		   });
 
-    script.regFunc("animation-spd?",
+    script->regFunc("animation-spd?",
 		   [] (scheme* scm, pointer args) -> pointer
 		   {
 		       return scm->vptr->mk_real(scm, anim->GetAnimationSpeed());
 		   });
 
-    script.regFunc("animation-defspd?",
+    script->regFunc("animation-defspd?",
 		   [] (scheme* scm, pointer args) -> pointer
 		   {
 		       return scm->vptr->mk_real(scm, anim->GetDefaultAnimationSpeed());
 		   });
 
-    script.regFunc("animation-setrunning!",
+    script->regFunc("animation-setrunning!",
 		   [] (scheme* scm, pointer args) -> pointer
 		   {
 		       if(args != scm->NIL)
@@ -136,20 +136,20 @@ void PlayerCharacter::load() {
 	    return (m_super ? scm->T : scm->F);
 	};
     
-    script.regFunc("setsuper!", superfunc);
+    script->regFunc("setsuper!", superfunc);
     ofScmDefineFunc("setsuper!", superfunc);
 
-    script.regFunc("super?", issuper);
+    script->regFunc("super?", issuper);
     ofScmDefineFunc("super?", issuper);
 
-    script.load("res/GameCharacter.scm");
+    script->loadfile("res/GameCharacter.scm");
 }
 
 void PlayerCharacter::unload() {
+    ClearComponents();
     sprite.unload();
     ofTexturePool::unload(sonic);
     ofTexturePool::unload(super);
-    script.unload();
     ofScmUndefineFunc("setsuper!");
     ofScmUndefineFunc("super?");
 }
@@ -157,7 +157,6 @@ void PlayerCharacter::unload() {
 void PlayerCharacter::update(float dt) {
     //sprite.setPosition(glm::vec2(position.x, position.y));
     sprite.update(dt);
-    script.update(dt);
 
     if(m_super != m_oldsuper) {
 	m_oldsuper = m_super;
@@ -166,11 +165,13 @@ void PlayerCharacter::update(float dt) {
     }
 
     if(ofButtonTap(ofPadBack))
-    	script.load("res/GameCharacter.scm");
+    	script->loadfile("res/GameCharacter.scm");
+    UpdateComponents(dt);
 }
 
 void PlayerCharacter::draw(glm::mat4 vp) {
     sprite.draw(vp * getModelMatrix(), 1.0f);
+    DrawComponents();
 }
 
 
