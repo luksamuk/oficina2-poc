@@ -8,7 +8,7 @@ int main(int argc, char** argv)
     //oficina::ofSetViewportSize(1280, 720);
     oficina::ofMapDefaultsP1();
     oficina::ofCanvasManager::dbg_ChangeState();
-    oficina::ofCanvasManager::add(new GameScreen);
+    oficina::ofCanvasManager::add(new GameScreen, 0, "Level");
     oficina::ofGameLoop();
     oficina::ofQuit();
 	return 0;
