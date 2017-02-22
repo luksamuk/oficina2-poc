@@ -16,7 +16,7 @@ CXX_OUT   = -o
 OF2_DEPS   = -lSDL2 -lSDL2_image -lGL -lGLEW
 OF2_LIBS   = -loficina2  $(OF2_DEPS)
 
-PROJ_LIBS = $(OBJ_DIR)main.o $(OBJ_DIR)GameScreen.o
+PROJ_LIBS = $(OBJ_DIR)main.o $(OBJ_DIR)GameScreen.o $(OBJ_DIR)MenuScreen.o
 
 LIBS      = $(OF2_LIBS)
 FLAGS     = $(CXX_FLAGS) $(OF2_FLAGS) -I$(SRC_DIR)
@@ -67,3 +67,6 @@ $(OBJ_DIR)main.o: $(SRC_DIR)main.cpp
 
 $(OBJ_DIR)GameScreen.o: $(SRC_DIR)GameScreen.cpp
 	$(CXX) $(FLAGS) $(CXX_OBJ) $(SRC_DIR)GameScreen.cpp $(CXX_OUT) $(OBJ_DIR)GameScreen.o
+
+$(OBJ_DIR)MenuScreen.o: $(SRC_DIR)MenuScreen.cpp
+	$(CXX) $(FLAGS) $(CXX_OBJ) $(SRC_DIR)MenuScreen.cpp $(CXX_OUT) $(OBJ_DIR)MenuScreen.o

@@ -18,8 +18,8 @@ void PlayerCharacter::init() {
 }
 
 void PlayerCharacter::load() {
-    sonic = ofTexturePool::load("res/sonic.png");
-    super = ofTexturePool::load("res/supersonic.png");
+    sonic = ofTexturePool::load("res/sprites/sonic.png");
+    super = ofTexturePool::load("res/sprites/supersonic.png");
     sprite.init(sonic, glm::uvec2(60, 60), false);
     sprite.setPosition(glm::vec2(0.0f, -16.0f));
 
@@ -45,7 +45,7 @@ void PlayerCharacter::load() {
     sprite.reg("Crouch", 1, crouch, 1.0f);
     sprite.reg("LookUp", 1, lookup, 1.0f);
     sprite.reg("Dead", 1, death, 1.0f);
-
+    
     sprite.SetAnimation("Idle");
     //sprite.SetAnimation("Walk");
     //sprite.SetAnimation("Run");
@@ -142,7 +142,7 @@ void PlayerCharacter::load() {
     script->regFunc("super?", issuper);
     ofScmDefineFunc("super?", issuper);
 
-    script->loadfile("res/GameCharacter.scm");
+    script->loadfile("res/scripts/player.scm");
 }
 
 void PlayerCharacter::unload() {
@@ -201,7 +201,7 @@ void GameScreen::init() {
 void GameScreen::load() {
     player.load();
     //tile  = ofTexturePool::load("res/tile.png");
-    tile = ofTexturePool::load("res/IsolatedIsland.png");
+    tile = ofTexturePool::load("res/levels/zone1/tiles.png");
     tilerender.init(tile, glm::uvec2(130));
     //ofBenchmarkStart(2.0f);
 }

@@ -1,4 +1,4 @@
-;;;; GameCharacter.scm
+;;;; player.scm
 ;;;; Sonic behaviour
 
 (define *paused* #f)
