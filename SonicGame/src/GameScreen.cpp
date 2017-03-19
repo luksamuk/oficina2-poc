@@ -3,25 +3,47 @@
 #include <oficina2/io.hpp>
 #include <oficina2/input.hpp>
 #include <oficina2/benchmark.hpp>
+#include <oficina2/ofscheme.hpp>
 using namespace oficina;
 
 glm::mat4 vp, projection, view, parallax_vp;
 
-ofAnimator* anim;
 bool m_super = false,
-     m_oldsuper = false;
+     m_oldsuper = false,
+     m_showbg = true;
 
 void PlayerCharacter::init() {
-    script = new ofScheme;
-    AddComponent("script", script);
-    anim = &sprite;
+    setName("Sonic");
 }
+
+SCM scm_setsuper(SCM state) {
+    m_super = scm_to_bool(state);
+    return SCM_UNDEFINED;
+}
+
+SCM scm_super() {
+    return scm_from_bool(m_super);
+}
+
+SCM scm_show_bg(SCM state)
+{
+    m_showbg = scm_to_bool(state);
+    return SCM_UNDEFINED;
+}
+
+
+
+
+
 
 void PlayerCharacter::load() {
     sonic = ofTexturePool::load("res/sprites/sonic.png");
     super = ofTexturePool::load("res/sprites/supersonic.png");
-    sprite.init(sonic, glm::uvec2(60, 60), false);
-    sprite.setPosition(glm::vec2(0.0f, -16.0f));
+    spriteRenderer.init(sonic, glm::uvec2(60, 60));
+    sprite = new ofAnimator;
+    sprite->SetRenderer(spriteRenderer, false);
+    sprite->setPosition(glm::vec2(0.0f, -16.0f));
+    AddComponent("Animator", sprite);
 
     ofdword stopped[]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     			   0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 4, 4 };
@@ -35,143 +57,58 @@ void PlayerCharacter::load() {
     ofdword lookup[]   = { 33 };
     ofdword death[]    = { 34 };
 
-    sprite.reg("Idle", 30, stopped, 8.0f, true, 26);
-    sprite.reg("Walk",  6, walking, 16.0f, true);
-    sprite.reg("Run",   4, running, 4.0f, true);
-    sprite.reg("Roll",  8, rolling, 8.0f, true);
-    sprite.reg("Skid",  1, skidding, 1.0f);
-    sprite.reg("Peel",  4, peelout, 2.0f, true);
-    sprite.reg("Push",  4, pushing, 32.0f, true);
-    sprite.reg("Crouch", 1, crouch, 1.0f);
-    sprite.reg("LookUp", 1, lookup, 1.0f);
-    sprite.reg("Dead", 1, death, 1.0f);
+    sprite->reg("Idle", 30, stopped, 8.0f, true, 26);
+    sprite->reg("Walk",  6, walking, 16.0f, true);
+    sprite->reg("Run",   4, running, 4.0f, true);
+    sprite->reg("Roll",  8, rolling, 8.0f, true);
+    sprite->reg("Skid",  1, skidding, 1.0f);
+    sprite->reg("Peel",  4, peelout, 2.0f, true);
+    sprite->reg("Push",  4, pushing, 32.0f, true);
+    sprite->reg("Crouch", 1, crouch, 1.0f);
+    sprite->reg("LookUp", 1, lookup, 1.0f);
+    sprite->reg("Dead", 1, death, 1.0f);
     
-    sprite.SetAnimation("Idle");
-    //sprite.SetAnimation("Walk");
-    //sprite.SetAnimation("Run");
+    sprite->SetAnimation("Idle");
     
+    script = new ofScheme;
+    AddComponent("Script", script);
 
-    script->regFunc("animation-set!",
-		   [] (scheme* scm, pointer args) -> pointer
-		   {
-		       if(args != scm->NIL)
-		       {
-			   if(scm->vptr->is_string(pair_car(args)))
-			   {
-			       std::string animName = scm->vptr->string_value(pair_car(args));
-			       anim->SetAnimation(animName);
-			   }
-			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-				      "Animation name must be string.\n");
-		       }
-		       return scm->NIL;
-		   });
+    script->loadfile("ofsonic player", "res/scripts/player.scm");
 
-    script->regFunc("animation-setspd!",
-		   [] (scheme* scm, pointer args) -> pointer
-		   {
-		       if(args != scm->NIL)
-		       {
-			   pointer p = scheme_eval(scm, pair_car(args));
-			   if(scm->vptr->is_number(p))
-			   {
-			       float animspd = scm->vptr->rvalue(pair_car(args));
-			       anim->SetAnimationSpeed(animspd);
-			   }
-			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-				      "Animation speed must be number.\n");
-		       }
-		       return scm->NIL;
-		   });
+    script->regFunc("set-super!",   1, SCHEME_FUNCAST(scm_setsuper));
+    script->regFunc("super?",       0, SCHEME_FUNCAST(scm_super));
 
-    script->regFunc("animation-spd?",
-		   [] (scheme* scm, pointer args) -> pointer
-		   {
-		       return scm->vptr->mk_real(scm, anim->GetAnimationSpeed());
-		   });
+    ofScmDefineFunc("set-super!",   1, SCHEME_FUNCAST(scm_setsuper));
+    ofScmDefineFunc("super?",       0, SCHEME_FUNCAST(scm_super));
 
-    script->regFunc("animation-defspd?",
-		   [] (scheme* scm, pointer args) -> pointer
-		   {
-		       return scm->vptr->mk_real(scm, anim->GetDefaultAnimationSpeed());
-		   });
-
-    script->regFunc("animation-setrunning!",
-		   [] (scheme* scm, pointer args) -> pointer
-		   {
-		       if(args != scm->NIL)
-		       {
-			   if(pair_car(args) == scm->T || pair_car(args) == scm->F)
-			   {
-			       anim->SetAnimationRunning((pair_car(args) == scm->T));
-			   }
-			   else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-				      "Animation running state must be #t or #f.\n");
-		       }
-		       else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-				  "Must provide arguments for running animation\n");
-		       return scm->NIL;
-		   });
-
-    auto superfunc =
-	[] (scheme* scm, pointer args) -> pointer
-	{
-	    if(args != scm->NIL)
-	    {
-		if(pair_car(args) == scm->T || pair_car(args) == scm->F)
-		{
-		    m_super = (pair_car(args) == scm->T);
-		}
-		else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-			   "Super state must be #t or #f.\n");
-	    }
-	    else ofLog(ofLogErr, OFLOG_CYN "SCM: " OFLOG_RESET
-		       "Must provide arguments for super state\n");
-	    return scm->NIL;
-	};
-
-    auto issuper =
-	[] (scheme* scm, pointer args) -> pointer
-	{
-	    return (m_super ? scm->T : scm->F);
-	};
-    
-    script->regFunc("setsuper!", superfunc);
-    ofScmDefineFunc("setsuper!", superfunc);
-
-    script->regFunc("super?", issuper);
-    ofScmDefineFunc("super?", issuper);
-
-    script->loadfile("res/scripts/player.scm");
+    // Export the player for REPL interaction
+    ofScmDefineSymbol("*player*", script->getSymRef("+this+"));
+    ofScmEval("(format #t \"Player handle is *player* = ~a\n\" *player*)", true);
 }
 
 void PlayerCharacter::unload() {
     ClearComponents();
-    sprite.unload();
+    spriteRenderer.unload();
     ofTexturePool::unload(sonic);
     ofTexturePool::unload(super);
-    ofScmUndefineFunc("setsuper!");
-    ofScmUndefineFunc("super?");
+    ofScmUndefine("set-super!");
+    ofScmUndefine("super?");
 }
 
 void PlayerCharacter::update(float dt) {
-    //sprite.setPosition(glm::vec2(position.x, position.y));
-    sprite.update(dt);
-
     if(m_super != m_oldsuper) {
 	m_oldsuper = m_super;
-	sprite.SetAnimationTexture(m_super ? super : sonic);
+	sprite->SetAnimationTexture(m_super ? super : sonic);
 	ofLog(ofLogInfo, "Changing to %s...\n", m_super ? "Super Sonic" : "Sonic");
     }
 
     if(ofButtonTap(ofPadBack))
-    	script->loadfile("res/GameCharacter.scm");
+    	script->loadfile("ofsonic player", "res/scripts/player.scm");
     UpdateComponents(dt);
 }
 
 void PlayerCharacter::draw(glm::mat4 vp) {
-    sprite.draw(vp * getModelMatrix(), 1.0f);
-    DrawComponents();
+    DrawComponents(vp);
 }
 
 
@@ -194,6 +131,8 @@ void GameScreen::init() {
 		       glm::vec3(0.0f, -1.0f, 0.0f));
     vp = projection * view;
     parallax_vp = projection * view;
+
+    ofScmDefineFunc("show-bg!", 1, SCHEME_FUNCAST(scm_show_bg));
 
     player.init();
 }
@@ -237,6 +176,7 @@ void GameScreen::draw() {
     parpos.y = 65.0f;
 
     // Parallax
+    if(m_showbg) {
     // Layer 0
     for(int i = 0; i < 2; i++) {
 	tilerender.render(parpos,                                 parallax_vp, 158);
@@ -270,6 +210,7 @@ void GameScreen::draw() {
 	tilerender.render(glm::vec2(parpos.x + 384.0f, parpos.y), parallax_vp, 166);
 	parpos.x += 512.0f;
     }
+    }
 
     
     
@@ -280,7 +221,7 @@ void GameScreen::draw() {
        if(i < 2) {
             tilerender.render(glm::vec2(pos.x, pos.y - 128.0f), vp, (i == 0) ? 256 : 257);
        }
-       else
+       else if(m_showbg)
        {
             tilerender.render(glm::vec2(pos.x, pos.y - 128.0f), vp, (i % 2) ? 105 : 104);
             if(!(i % 2)) tilerender.render(glm::vec2(pos.x, pos.y - 256.0f), vp, 102);

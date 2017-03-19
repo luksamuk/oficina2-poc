@@ -1,4 +1,5 @@
 #include "MenuScreen.hpp"
+#include <oficina2/oficina.hpp>
 #include <oficina2/input.hpp>
 #include <string>
 #include "GameScreen.hpp"
@@ -50,26 +51,11 @@ void MainMenu::init()
 	ctrlPs  = "Enter";
     
     menuText << "Sonic The Hedgehog Engine v0.1 alpha" << std::endl
-	     << "Powered by Oficina Framework v2" << std::endl
+	     << "Powered by Oficina Framework" << std::endl
+         << "v" OF_VERSION_STRING << std::endl
 	     << "by luksamuk" << std::endl << std::endl
 	     << "This engine is proof-of-concept only, " << std::endl
 	     << "and shall not be used for commercial purposes." << std::endl << std:: endl
-	     << "Controls" << std::endl
-	     << "========" << std::endl
-	     << ctrlMove << ": Move" << std::endl
-	     << ctrlJmp << ": Jump" << std::endl
-	     << ctrlSpr << ": Change super state" << std::endl
-	     << ctrlPs << ": Pause game" << std::endl
-	     << "F1: Cycle debugger state (inactive/watcher/repl)" << std::endl
-	     << "F2: Toggle Repl input (Repl visible)" << std::endl
-	     << "Enter: Evaluate Repl command (Repl visible)" << std::endl
-	     << "Shift + Enter: Input new line (Repl visible)" << std::endl
-	     << std::endl << std::endl
-	     << "Repl commands" << std::endl
-	     << "============" << std::endl
-	     << "(setsuper! state): Change super state" << std::endl
-	     << "                   (\"state\" must be #t or #f)" << std::endl
-	     << "(canvas-list): List currently loaded scenes" << std::endl << std::endl
 	     << "* PRESS START *";
 }
 

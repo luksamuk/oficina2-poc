@@ -12,8 +12,9 @@ class PlayerCharacter : public oficina::ofEntity
 private:
     ofTexture sonic,
 	      super;
-    ofAnimator sprite;
-    ofScheme*  script;
+    ofAnimator* sprite;
+    ofScheme*   script;
+    ofTextureRenderer spriteRenderer;
 public:
     void init();
     void load();
