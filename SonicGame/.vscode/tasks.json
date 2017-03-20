@@ -1,0 +1,19 @@
+{
+    "version": "0.1.0",
+    "command": "make",
+    "isShellCommand": true,
+    "showOutput": "always",
+    "tasks": [
+        {
+            "taskName": "Build",
+            "args": [],
+            "suppressTaskName": true,
+            "isBuildCommand": true
+        },
+        {
+            "taskName": "Clean",
+            "args": ["clean"],
+            "suppressTaskName": true
+        }
+    ]
+}
