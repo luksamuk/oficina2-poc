@@ -15,13 +15,15 @@ CXX_FLAGS = -g -Wall
 CXX_OUT   = -o
 GUILE_LIBS = -lguile-2.0 -lgc
 GUILE_FLAGS = -pthread -I/usr/include/guile/2.0
-OF2_DEPS   = -lSDL2 -lSDL2_image -lGL -lGLEW $(GUILE_LIBS)
+LUA_LIBS   = -l:liblua.so.5.3
+LUA_FLAGS  = 
+OF2_DEPS   = -lSDL2 -lSDL2_image -lGL -lGLEW $(GUILE_LIBS) $(LUA_LIBS)
 OF2_LIBS   = -loficina2  $(OF2_DEPS)
 
 PROJ_LIBS = $(OBJ_DIR)main.o $(OBJ_DIR)GameScreen.o $(OBJ_DIR)MenuScreen.o
 
 LIBS      = $(OF2_LIBS)
-FLAGS     = $(CXX_FLAGS) $(OF2_FLAGS) -I$(SRC_DIR) $(GUILE_FLAGS)
+FLAGS     = $(CXX_FLAGS) $(OF2_FLAGS) -I$(SRC_DIR) $(GUILE_FLAGS) $(LUA_FLAGS)
 
 .PHONY: clean delete dirs assets
 

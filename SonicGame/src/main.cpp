@@ -5,7 +5,8 @@
 int main(int argc, char** argv)
 {
     //oficina::ofLogSetLevel(ofLogWarn);
-    oficina::ofInit();
+    oficina::ofInit({"wname=OFSONIC THE HEDGEHOG"});
+    ofSetVSync(true);
     //oficina::ofSetWindowSize(1280, 720);
     //oficina::ofSetViewportSize(1280, 720);
     oficina::ofMapDefaultsP1();

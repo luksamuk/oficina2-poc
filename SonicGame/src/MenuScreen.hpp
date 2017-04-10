@@ -25,6 +25,28 @@ class MainMenu : public MenuScreen
 {
 private:
     std::stringstream menuText;
+    oficina::ofTexture title,
+                       titleblack;
+    oficina::ofTextureRenderer titleRend, titleBlackRend;
+    float sizestart = 0.02f;
+    float transst   = 0.0f;
+    glm::mat4 title_model;
+    glm::mat4 menu_model;
+    glm::vec2 menu_pos;
+    ofsbyte   menu_move = 0;
+    oficina::ofPrimitive* quad = nullptr;
+    ofbyte transstType = 0u;
+    std::string menuOptions[6] = {
+        "Press Start Button",
+        "     New Game    >",
+        "<  Level Select  >",
+        "<  Level Editor  >",
+        "<     Options    >",
+        "<      Quit       "
+    };
+    bool menuSelect = false;
+    ofbyte menuTextSelect = 0u;
+    ofbyte oldSel = 1u;
 public:
     void init();
     void load();

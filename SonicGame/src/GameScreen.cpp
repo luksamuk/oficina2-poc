@@ -82,7 +82,7 @@ void PlayerCharacter::load() {
     ofScmDefineFunc("super?",       0, SCHEME_FUNCAST(scm_super));
 
     // Export the player for REPL interaction
-    ofScmDefineSymbol("*player*", script->getSymRef("+this+"));
+    ofScmDefineSymbol("*player*", this);
     ofScmEval("(format #t \"Player handle is *player* = ~a\n\" *player*)", true);
 }
 
@@ -103,7 +103,7 @@ void PlayerCharacter::update(float dt) {
     }
 
     if(ofButtonTap(ofPadBack))
-    	script->loadfile("ofsonic player", "res/scripts/player.scm");
+    	script->reload();
     UpdateComponents(dt);
 }
 
@@ -122,7 +122,6 @@ void PlayerCharacter::draw(glm::mat4 vp) {
 
 
 void GameScreen::init() {
-    ofSetVSync(true);
     glm::vec2 vwprt = glm::vec2(640.0f, 360.0f);
     cameraPosition = glm::vec2(0.0f, 16.0f);
     projection = glm::ortho(0.0f, vwprt.x, -vwprt.y, 0.0f, 1.0f, 10.0f);
