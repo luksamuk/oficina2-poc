@@ -1,8 +1,5 @@
 ;;;; player.scm
 ;;;; Sonic behaviour
-
-(define-module (ofsonic player)
-  :export (init update))
 (use-modules ((oficina common))
              ((oficina entity))
              ((oficina render)))
