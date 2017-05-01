@@ -9,42 +9,55 @@ using namespace oficina;
 class Solid : public ofEntity
 {
 private:
-	ofPrimitive* shape;
+	static ofPrimitive* shape;
+	static ofqword      shapeCount;
 public:
-	Solid(glm::vec2 position, glm::vec2 size = glm::vec2(64.0f)) {
+	Solid(glm::vec2 position, bool isJumpThru = false, glm::vec2 size = glm::vec2(64.0f)) {
 		scale(glm::vec3(size, 1.0f), true);
 		translate(glm::vec3(position, 0.0f), true);
+		setProperty(2, isJumpThru);
 	}
 	
 	void init() {
 		setProperty(0, false);
 		setProperty(1, true);
-		setProperty(2, false);
 	}
 
 	void load() {
-		float theShape[] = {
-			0.0f, 0.0f, 0.0f,
-			1.0f, 0.0f, 0.0f,
-			1.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f
-		};
-		shape = ofPrimitiveRenderer::makePrimitive(ofTriangleFan,
-												   4, sizeof(theShape),
-												   theShape);
+		if(!shapeCount) {
+			float theShape[] = {
+				0.0f, 0.0f, 0.0f,
+				1.0f, 0.0f, 0.0f,
+				1.0f, 1.0f, 0.0f,
+				0.0f, 1.0f, 0.0f
+			};
+			shape = ofPrimitiveRenderer::makePrimitive(ofTriangleFan,
+													   4, sizeof(theShape),
+													   theShape);
+			shapeCount = 1u;
+		} else shapeCount++;
 	}
 
 	void unload() {
-		delete shape;
+		shapeCount--;
+		if(!shapeCount)
+			delete shape;
 	}
 
 	void update(float dt) {
 	}
 
 	void draw(glm::mat4 mvp) {
-		ofPrimitiveRenderer::draw(shape, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), mvp * getModelMatrix());
+		ofPrimitiveRenderer::draw(shape,
+								  getProperty(2)
+								  ? glm::vec4(0.0f, 0.4f, 0.01f, 1.0f)
+								  : glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+								  mvp * getModelMatrix());
 	}
 };
+
+ofqword      Solid::shapeCount = 0u;
+ofPrimitive* Solid::shape;
 
 class Sensor : public ofIComponent
 {
@@ -52,16 +65,38 @@ private:
 	float radius = 5.0f;
 	glm::vec3 position;
 	glm::vec2 relpos;
+	bool visible = true;
+	glm::vec4 color;
+	static ofPrimitive* sensorShape;
+	static ofqword      sensorCount;
 public:
-	Sensor(glm::vec2 relpos) {
+	Sensor(glm::vec2 relpos,
+		   glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 0.2f)) {
 		this->relpos = relpos;
+		this->color = color;
 	}
 	void init() {
 		radius = 5.0f;
+		
 	}
 	void load() {
+		if(!sensorCount) {
+			float sensorShapeVerts[] = {
+				-radius, -radius, 0.0f,
+				radius, -radius, 0.0f,
+				radius, radius, 0.0f,
+				-radius, radius, 0.0f
+			};
+			sensorShape = ofPrimitiveRenderer::makePrimitive(ofTriangleFan,
+															 4, sizeof(sensorShapeVerts),
+															 sensorShapeVerts);
+			sensorCount = 1u;
+		} else sensorCount++;
 	}
 	void unload() {
+		sensorCount--;
+		if(!sensorCount)
+			delete sensorShape;
 	}
 	void update(float dt) {
 		position = parent->getPosition();
@@ -69,6 +104,11 @@ public:
 		position.y += relpos.y;
 	}
 	void draw(glm::mat4 mvp) {
+		if(visible) {
+			ofPrimitiveRenderer::draw(sensorShape,
+									  color,
+									  mvp * glm::translate(glm::mat4(), position));
+		}
 	}
 
     bool isOverlapping(ofEntity* solidptr) {
@@ -82,11 +122,15 @@ public:
 	}
 };
 
+ofPrimitive* Sensor::sensorShape;
+ofqword      Sensor::sensorCount = 0u;
+
 class Player : public ofEntity
 {
 private:
 	// Handle for the animator component
     ofAnimator* animator;
+	ofTexture   myTexture;
     // Some constants
     float     gravity;
     float     hitboxRadX;
@@ -104,8 +148,13 @@ private:
 
 	// Sensors
 	Sensor* bottomSensor;
+	Sensor* bottomLSensor;
+	Sensor* bottomRSensor;
+	Sensor* ledgeLSensor;
+	Sensor* ledgeRSensor;
 	Sensor* leftSensor;
 	Sensor* rightSensor;
+	Sensor* topSensor;
 public:
 	void init() {
 		gravity     = 0.8165f;
@@ -113,8 +162,8 @@ public:
 		hitboxRadY  = 32.0f;
 		accel       = 0.166f;
 		decel       = 0.3f;
-		jmpStg      = -12.0f;
-		minJmp      = -6.0f;
+		jmpStg      = -13.0f;
+		minJmp      = -6.5f;
 		maxSpd      = 8.0f;
 		direction   = 1.0f;
 		ground      = false;
@@ -126,7 +175,7 @@ public:
 	}
 
 	void load() {
-		auto myTexture = ofTexturePool::load("res/smileman.png");
+		myTexture = ofTexturePool::load("res/smileman.png");
 		ofTextureRenderer renderer;
 		renderer.init(myTexture, glm::uvec2(64));
 		animator = new ofAnimator;
@@ -137,22 +186,33 @@ public:
 			ofdword walking[] = {0, 1, 0, 2};
 			ofdword jumping[] = {2};
 			animator->reg("stopped", 1, stopped, 1.0f, true);
-			animator->reg("walking", 4, walking, 8.0f, true);
+			animator->reg("walking", 4, walking, 6.0f, true);
 			animator->reg("jumping", 1, jumping, 1.0f, true);
 		}
 		animator->SetAnimation("stopped");
 
 		// Add sensors
-		bottomSensor = new Sensor(glm::vec2(0.0f, hitboxRadY));
-		leftSensor   = new Sensor(glm::vec2(-hitboxRadX, 0.0f));
-		rightSensor  = new Sensor(glm::vec2(hitboxRadX, 0.0f));
+		bottomSensor = new Sensor(glm::vec2(0.0f, hitboxRadY),  glm::vec4(1.0f, 0.0f, 0.0f, 0.2f));
+		bottomLSensor = new Sensor(glm::vec2(-hitboxRadX + 8.0f, hitboxRadY), glm::vec4(0.8f, 0.0f, 0.0f, 0.2f));
+		bottomRSensor = new Sensor(glm::vec2(hitboxRadX - 8.0f, hitboxRadY), glm::vec4(0.8f, 0.0f, 0.0f, 0.2f));
+		ledgeLSensor = new Sensor(glm::vec2(-hitboxRadX + 5.0f, hitboxRadY));
+		ledgeRSensor = new Sensor(glm::vec2(hitboxRadX - 5.0f, hitboxRadY));
+		leftSensor   = new Sensor(glm::vec2(-hitboxRadX, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.2f));
+		rightSensor  = new Sensor(glm::vec2(hitboxRadX, 0.0f),  glm::vec4(1.0f, 1.0f, 0.7f, 0.2f));
+		topSensor    = new Sensor(glm::vec2(0.0f, -hitboxRadY), glm::vec4(0.0f, 1.0f, 0.0f, 0.2f));
 		AddComponent("BottomSensor", bottomSensor);
+		AddComponent("BottomLSensor", bottomLSensor);
+		AddComponent("BottomRSensor", bottomRSensor);
+		AddComponent("LedgeLSensor", ledgeLSensor);
+		AddComponent("LedgeRSensor", ledgeRSensor);
 		AddComponent("LeftSensor",   leftSensor);
 		AddComponent("RightSensor",  rightSensor);
+		AddComponent("TopSensor",    topSensor);
 	}
 
 	void unload() {
 		ClearComponents();
+		ofTexturePool::unload(myTexture);
 	}
 
 	bool isOverlapping(ofEntity* solidptr) {
@@ -206,12 +266,23 @@ public:
 			if(!ground                // No ground found previously
 			   && speed.y >= 0.0f     // Player is not going up
 			   && obj->getProperty(1) // Is Solid
-			   && bottomSensor->isOverlapping(obj)) {
+			   && (bottomSensor->isOverlapping(obj)
+				   || bottomLSensor->isOverlapping(obj)
+				   || bottomRSensor->isOverlapping(obj))) {
 				// It is indeed a solid object.
 				// Ground collisions ahoy
 				pos.y = (solidpos.y - hitboxRadY);
 				speed.y = 0.0f;
 				ground = true;
+			}
+
+			// Top collision
+			if(speed.y < 0.0f          // Player is going up
+			   && obj->getProperty(1)  // Is Solid
+			   && !obj->getProperty(2) // Is NOT jumpthru
+			   && topSensor->isOverlapping(obj)) {
+				pos.y = (solidpos.y + solidsz.y) + hitboxRadY;
+				speed.y = 0.0f;
 			}
 
 			// Left collision
@@ -297,15 +368,42 @@ public:
 	}
 
 	void load() {
+		// Straight path
+		for(int i = 0; i < 5; i++)
+			manager->add(new Solid(glm::vec2(64.0f * i, 192.0f)));
+		// Straight path, a little below
+		for(int i = 0; i < 7; i++)
+			manager->add(new Solid(glm::vec2(256.0f + (64.0f * i), 256.0f)));
+		// Straight path
+		for(int i = 0; i < 5; i++)
+			manager->add(new Solid(glm::vec2(640.0f + (64.0f * i), 192.0f)));
+		// Straight way down
+		for(int i = 0; i < 5; i++)
+			manager->add(new Solid(glm::vec2(960.0f, 192.0f + (64.0f * i))));
+		// Straight path
+		for(int i = 0; i < 15; i++)
+			manager->add(new Solid(glm::vec2(960.0f + (64.0f * i), 576.0f)));
+
+		// Straight paths, jumpthru
+		for(int j = 0; j > -5; j--)
+			for(int i = 0; i < 5; i++)
+				manager->add(new Solid(glm::vec2(1216.0f + (64.0f * i), 512.0f + (96.0f * j)),
+									   true,
+									   glm::vec2(64.0f, 16.0f)));
+
+		// Small cave
+		manager->add(new Solid(glm::vec2(896.0f, 576.0f)));
+		manager->add(new Solid(glm::vec2(832.0f, 576.0f)));
+		manager->add(new Solid(glm::vec2(768.0f, 576.0f)));
+		manager->add(new Solid(glm::vec2(768.0f, 512.0f)));
+		manager->add(new Solid(glm::vec2(768.0f, 448.0f)));
+		manager->add(new Solid(glm::vec2(768.0f, 384.0f)));
+		manager->add(new Solid(glm::vec2(832.0f, 384.0f)));
+		manager->add(new Solid(glm::vec2(896.0f, 384.0f)));
+
 		player = new Player;
 		manager->add(player);
 		
-		for(int i = 0; i < 5; i++)
-			manager->add(new Solid(glm::vec2(64.0f * i, 192.0f)));
-		for(int i = 0; i < 5; i++)
-			manager->add(new Solid(glm::vec2(320.0f + (64.0f * i), 256.0f)));
-		for(int i = 0; i < 5; i++)
-			manager->add(new Solid(glm::vec2(640.0f + (64.0f * i), 192.0f)));
 	}
 
 	void unload() {
@@ -313,9 +411,14 @@ public:
 	}
      
 	void updateCamera() {
+		// Fetch camera from player position
 		glm::vec3 playerPos = player->getPosition();
 		camPos.x = playerPos.x - 320.0f;
 		camPos.y = playerPos.y - 180.0f;
+
+		// Limit camera to a minimum X
+		camPos.x = (camPos.x < 0.0f) ? 0.0f : camPos.x;
+		camPos.y = (camPos.y < 0.0f) ? 0.0f : camPos.y;
 		
 		view = glm::lookAt(glm::vec3(camPos.x, camPos.y, -1.2f),
 						   glm::vec3(camPos.x, camPos.y, 0.0f),
