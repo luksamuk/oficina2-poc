@@ -135,8 +135,7 @@
                           (if (> (abs currspd) 1.8)
                               (set-anim! *animator* "Skid"))
                           (set! *action* :act-skid)
-                          (set! currspd (+ currspd *decel*)))
-                        )
+                          (set! currspd (+ currspd *decel*))))
                     
                     ;; Reset skidding
                     (if (and (= *action* :act-skid)
@@ -144,8 +143,7 @@
                              (< currspd *decel*))
                         (begin
                           (set! *action* :act-none)
-                          (set! currspd 0.0)))
-                    ))
+                          (set! currspd 0.0)))))
               ;; Left boundary limit
               (if (and (<= (- (vector-ref (pos?) :x) 10.0) 0.0)
                        (< currspd 0.0))
@@ -185,15 +183,13 @@
                           (begin
                             (set! *ground* #t)
                             (set! currspd 0.0)
-                            (set! *action* :act-none)
-                            )))
+                            (set! *action* :act-none))))
                     
                     ;; Minimum jump strength
                     (if (and (= *action* :act-jmp)
                              (not (btnpress? :pad-a *current-player*))
                              (< currspd *minjmp*))
-                        (set! currspd *minjmp*))
-                    )
+                        (set! currspd *minjmp*)))
                   ;; Else
                   (begin
                     ;; Jumping

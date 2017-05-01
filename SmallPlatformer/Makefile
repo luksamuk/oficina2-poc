@@ -3,7 +3,7 @@ MKDIR     = mkdir -p
 DEL       = rm -rf
 LDD       = ld -r
 
-OUTPUT    = SonicGame
+OUTPUT    = SmallPlatformer
 
 SRC_DIR   = ./src/
 RES_DIR   = ./resources/
@@ -16,7 +16,7 @@ CXX_OUT   = -o
 OF2_FLAGS   = `oficina2-config --cppflags`
 OF2_LIBS    = `oficina2-config --libs`
 
-PROJ_LIBS = $(OBJ_DIR)main.o $(OBJ_DIR)GameScreen.o $(OBJ_DIR)MenuScreen.o
+PROJ_LIBS = $(OBJ_DIR)main.o
 
 LIBS      = $(OF2_LIBS)
 FLAGS     = $(CXX_FLAGS) $(OF2_FLAGS) -I$(SRC_DIR) $(GUILE_FLAGS) $(LUA_FLAGS)
@@ -65,8 +65,3 @@ dirs:
 $(OBJ_DIR)main.o: $(SRC_DIR)main.cpp
 	$(CXX) $(FLAGS) $(CXX_OBJ) $(SRC_DIR)main.cpp $(CXX_OUT) $(OBJ_DIR)main.o
 
-$(OBJ_DIR)GameScreen.o: $(SRC_DIR)GameScreen.cpp
-	$(CXX) $(FLAGS) $(CXX_OBJ) $(SRC_DIR)GameScreen.cpp $(CXX_OUT) $(OBJ_DIR)GameScreen.o
-
-$(OBJ_DIR)MenuScreen.o: $(SRC_DIR)MenuScreen.cpp
-	$(CXX) $(FLAGS) $(CXX_OBJ) $(SRC_DIR)MenuScreen.cpp $(CXX_OUT) $(OBJ_DIR)MenuScreen.o
