@@ -74,23 +74,14 @@ private:
 	// Handle for the animator component
     ofAnimator* animator;
 	ofTexture   myTexture;
-    // Some constants
-    float     gravity;
-    float     hitboxRadX;
-    float     hitboxRadY;
-    float     groundY;
-    // Variables for our object
-    glm::vec3 speed;
-    float     accel;
-    float     decel;
-    float     jmpStg;
-	float     minJmp;
-	float     defaultMaxSpd;
-	float     runMaxSpd;
-    float     maxSpd;
-    float     direction;
-    bool      ground;
 
+	// Some constants
+	float hitboxRadX;
+	float hitboxRadY;
+	
+	// Handle for script
+	ofLua*      script;
+	
 	// Sensors
 	ofAABB*           masterSensor;
 	ofBoundingSphere* bottomSensor;
@@ -103,18 +94,8 @@ private:
 	ofBoundingSphere* topSensor;
 public:
 	void init() {
-		gravity     = 0.8165f;
 		hitboxRadX  = 16.0f;
 		hitboxRadY  = 32.0f;
-		accel       = 0.166f;
-		decel       = 0.3f;
-		jmpStg      = -13.0f;
-		minJmp      = -6.5f;
-		defaultMaxSpd = 4.0f;
-		runMaxSpd     = 8.5f;
-		maxSpd      = defaultMaxSpd;
-		direction   = 1.0f;
-		ground      = false;
 	
 		setProperty(0, true);
 		setProperty(1, false);
@@ -141,12 +122,18 @@ public:
 		animator->SetAnimation("stopped");
 
 		// Add sensors
-		masterSensor  = new ofAABB(glm::vec3(), glm::vec3(hitboxRadX, hitboxRadY, 0.5f));
-		bottomSensor  = new ofBoundingSphere(glm::vec3(0.0f, hitboxRadY, 0.0f), 5.0f);
-		bottomLSensor = new ofBoundingSphere(glm::vec3(-hitboxRadX + 8.0f, hitboxRadY, 0.0f), 5.0f);
-		bottomRSensor = new ofBoundingSphere(glm::vec3(hitboxRadX - 8.0f, hitboxRadY, 0.0f), 5.0f);
-		ledgeLSensor  = new ofBoundingSphere(glm::vec3(-hitboxRadX + 5.0f, hitboxRadY, 0.0f), 5.0f);
-		ledgeRSensor  = new ofBoundingSphere(glm::vec3(hitboxRadX - 5.0f, hitboxRadY, 0.0f), 5.0f);
+		masterSensor  =
+			new ofAABB(glm::vec3(), glm::vec3(hitboxRadX, hitboxRadY, 0.5f));
+		bottomSensor  =
+			new ofBoundingSphere(glm::vec3(0.0f, hitboxRadY, 0.0f), 5.0f);
+		bottomLSensor =
+			new ofBoundingSphere(glm::vec3(-hitboxRadX + 8.0f, hitboxRadY, 0.0f), 5.0f);
+		bottomRSensor =
+			new ofBoundingSphere(glm::vec3(hitboxRadX - 8.0f, hitboxRadY, 0.0f), 5.0f);
+		ledgeLSensor  =
+			new ofBoundingSphere(glm::vec3(-hitboxRadX + 5.0f, hitboxRadY, 0.0f), 5.0f);
+		ledgeRSensor  =
+			new ofBoundingSphere(glm::vec3(hitboxRadX - 5.0f, hitboxRadY, 0.0f), 5.0f);
 		leftSensor    = new ofBoundingSphere(glm::vec3(-hitboxRadX, 0.0f, 0.0f), 5.0f);
 		rightSensor   = new ofBoundingSphere(glm::vec3(hitboxRadX, 0.0f, 0.0f), 5.0f);
 		topSensor     = new ofBoundingSphere(glm::vec3(0.0f, -hitboxRadY, 0.0f), 5.0f);
@@ -161,6 +148,12 @@ public:
 		AddComponent("RightSensor",  rightSensor);
 		AddComponent("TopSensor",    topSensor);
 
+		script = new ofLua();
+		AddComponent("Lua", script);
+		// Fine description of object behaviour is all
+		// on this script file
+		script->loadfile("res/scripts/Player.lua");
+
 		ofLuaDefineSymbol("player", this);
 	}
 
@@ -171,126 +164,10 @@ public:
 	}
 
 	void update(float dt) {
-		auto pos    = getPosition();
-		auto lstick = ofGetLeftStick();
 		UpdateComponents(dt);
 
-		// Y axis movement
-		if(!ground) speed.y += gravity;
-		if(ground && ofButtonTap(ofPadA)) {
-			ground = false;
-			speed.y = jmpStg ;
-		}
-
-		// X axis movement
-		speed.x += (lstick.x * accel);
-		speed.x = ofClamp(speed.x, -maxSpd, maxSpd);
-		if(ground) {
-			if(lstick.x == 0.0f) {
-				if(speed.x > 0.0f) speed.x -= decel;
-				else if(speed.x < 0.0f) speed.x += decel;
-
-				if(abs(speed.x) < decel) speed.x = 0.0f;
-			} else if(lstick.x < 0.0f && speed.x > 0.0f) {
-				speed.x -= decel * 2.0f;
-			} else if(lstick.x > 0.0f && speed.x < 0.0f) {
-				speed.x += decel * 2.0f;
-			}
-		}
-		if(ofButtonPress(ofPadX)) maxSpd = runMaxSpd;
-		else                      maxSpd = defaultMaxSpd;
-
-		// New collision
-		ground = false;
-		for(auto obj : parent->getNearest(this))
-		{
-			if(obj->getProperty(0))
-				continue;
-
-			auto objBV = static_cast<ofAABB*>(obj->GetComponent("AABB"));
-
-			glm::vec3 solidpos = obj->getPosition();
-			glm::vec3 solidsz  = obj->getScale();
-			
-			// Ground collision
-			if(!ground                // No ground found previously
-			   && speed.y >= 0.0f     // Player is not going up
-			   && obj->getProperty(1) // Is Solid
-			   && (bottomSensor->isOverlapping(objBV)
-				   || bottomLSensor->isOverlapping(objBV)
-				   || bottomRSensor->isOverlapping(objBV))) {
-				// It is indeed a solid object.
-				// Ground collisions ahoy
-				pos.y = (solidpos.y - hitboxRadY);
-				speed.y = 0.0f;
-				ground = true;
-				//ofLog(ofLogInfo, "Ground collision\n");
-			}
-
-			// Top collision
-			if(speed.y < 0.0f          // Player is going up
-			   && obj->getProperty(1)  // Is Solid
-			   && !obj->getProperty(2) // Is NOT jumpthru
-			   && topSensor->isOverlapping(objBV)) {
-				pos.y = (solidpos.y + solidsz.y) + hitboxRadY;
-				speed.y = 0.0f;
-				//ofLog(ofLogInfo, "Top collision\n");
-			}
-
-			// Left collision
-			if(speed.x < 0.0f
-			   && obj->getProperty(1)  // Is Solid
-			   && !obj->getProperty(2) // Is NOT jumpthru
-			   && leftSensor->isOverlapping(objBV)) {
-				pos.x = (solidpos.x + solidsz.x) + hitboxRadX;
-				speed.x = 0.0f;
-				//ofLog(ofLogInfo, "Left collision\n");
-			}
-
-			// Right collision
-			if(speed.x > 0.0f
-			   && obj->getProperty(1)  // Is Solid
-			   && !obj->getProperty(2) // Is NOT jumpthru
-			   && rightSensor->isOverlapping(objBV)) {
-				pos.x = solidpos.x - hitboxRadX;
-				speed.x = 0.0f;
-				//ofLog(ofLogInfo, "Right collision\n");
-			}
-		}
-
-		// Platformer-like jump
-		if(!ground
-		   && (speed.y < minJmp)
-		   && !ofButtonPress(ofPadA))
-			speed.y = minJmp;
-
-		// Transform position
-		pos += speed;
-
-		// Hand position back to engine
-		translate(pos, true);
-
-		// Direction
-		direction = (speed.x > 0.0f) ? 1.0f :
-			((speed.x < 0.0f) ? -1.0f :
-			 direction);
-		scale(glm::vec3(direction, 1.0f, 1.0f), true);
-		// Animation
-		if(ground)
-		{
-			if(speed.x == 0.0f) // If not moving, stop
-				animator->SetAnimation("stopped");
-			else
-			{
-				animator->SetAnimation("walking");
-				float norm = abs(speed.x) / runMaxSpd;
-				norm = 1.0f - norm;
-				float animspd = norm * 6.0f;
-				animator->SetAnimationSpeed(animspd + animator->GetDefaultAnimationSpeed());
-			}
-		}
-		else animator->SetAnimation("jumping");
-		
+		if(ofButtonTap(ofPadY))
+			script->reload();
 	}
 
 	void draw(glm::mat4 mvp) {
