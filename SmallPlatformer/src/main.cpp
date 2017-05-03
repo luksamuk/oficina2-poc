@@ -85,6 +85,8 @@ private:
     float     decel;
     float     jmpStg;
 	float     minJmp;
+	float     defaultMaxSpd;
+	float     runMaxSpd;
     float     maxSpd;
     float     direction;
     bool      ground;
@@ -108,7 +110,9 @@ public:
 		decel       = 0.3f;
 		jmpStg      = -13.0f;
 		minJmp      = -6.5f;
-		maxSpd      = 8.0f;
+		defaultMaxSpd = 4.0f;
+		runMaxSpd     = 8.5f;
+		maxSpd      = defaultMaxSpd;
 		direction   = 1.0f;
 		ground      = false;
 	
@@ -157,23 +161,13 @@ public:
 		AddComponent("RightSensor",  rightSensor);
 		AddComponent("TopSensor",    topSensor);
 
-		ofScmDefineSymbol("*player*", this);
+		ofLuaDefineSymbol("player", this);
 	}
 
 	void unload() {
-		ofScmUndefine("*player*");
+		ofLuaUndefine("player");
 		ClearComponents();
 		ofTexturePool::unload(myTexture);
-	}
-
-	bool isOverlapping(ofEntity* solidptr) {
-		glm::vec3 solidpos = solidptr->getPosition();
-		glm::vec3 solidsz  = solidptr->getScale();
-		return ((((position.y + hitboxRadY) >= solidpos.y)
-				 && (position.y <= (solidpos.y + solidsz.y)))
-				&& (((position.x + hitboxRadX) >= solidpos.x)
-					&& (position.x <= (solidpos.x + solidsz.x))));
-				
 	}
 
 	void update(float dt) {
@@ -198,11 +192,13 @@ public:
 
 				if(abs(speed.x) < decel) speed.x = 0.0f;
 			} else if(lstick.x < 0.0f && speed.x > 0.0f) {
-				speed.x -= decel;
+				speed.x -= decel * 2.0f;
 			} else if(lstick.x > 0.0f && speed.x < 0.0f) {
-				speed.x += decel;
+				speed.x += decel * 2.0f;
 			}
 		}
+		if(ofButtonPress(ofPadX)) maxSpd = runMaxSpd;
+		else                      maxSpd = defaultMaxSpd;
 
 		// New collision
 		ground = false;
@@ -287,7 +283,7 @@ public:
 			else
 			{
 				animator->SetAnimation("walking");
-				float norm = abs(speed.x) / maxSpd;
+				float norm = abs(speed.x) / runMaxSpd;
 				norm = 1.0f - norm;
 				float animspd = norm * 6.0f;
 				animator->SetAnimationSpeed(animspd + animator->GetDefaultAnimationSpeed());
@@ -368,9 +364,11 @@ public:
      
 	void updateCamera() {
 		// Fetch camera from player position
-		glm::vec3 playerPos = player->getPosition();
-		camPos.x = playerPos.x - 320.0f;
-		camPos.y = playerPos.y - 180.0f;
+		if(player) {
+			glm::vec3 playerPos = player->getPosition();
+			camPos.x = playerPos.x - 320.0f;
+			camPos.y = playerPos.y - 180.0f;
+		}
 
 		// Limit camera to a minimum X
 		camPos.x = (camPos.x < 0.0f) ? 0.0f : camPos.x;
@@ -399,6 +397,7 @@ int main(int argc, char** argv)
 			"frmrt=60c20m",
 			"vsync=on"});
 	ofMapDefaultsP1();
+	ofSetReplType(ofReplLua);
 	ofCanvasManager::add(new Game);
 	ofGameLoop();
 	ofQuit();
