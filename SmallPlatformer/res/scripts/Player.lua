@@ -37,7 +37,8 @@ function init()
    entity.setProperty(3, false)
    entity.translate({128, 128, 0}, true)
    animator = entity.getComponent("animator")
-   -- TO-DO: Get sensors
+   
+   -- Get sensors
    mastersensor  = entity.getComponent("MasterSensor")
    bottomsensor  = entity.getComponent("BottomSensor")
    bottomLsensor = entity.getComponent("BottomLSensor")
@@ -83,7 +84,6 @@ function update(dt)
    ground = false
    for key, obj in pairs(entity.getNearest()) do
       if not entity.getProperty(1, obj) then
-         --common.format("Performing collision on object #%s\n", key)
          local objBV = entity.getComponent("AABB", obj)
          local solidpos = entity.getPosition(obj)
          local solidsz  = {entity.getMagnification(X, obj),
@@ -166,8 +166,7 @@ function update(dt)
          render.animator.setAnimation(animator, "stopped")
       else
          render.animator.setAnimation(animator, "walking")
-         local norm = math.abs(speed[X]) / runMaxSpd
-         norm = 1.0 - norm
+         local norm = 1.0 - (math.abs(speed[X]) / runMaxSpd)
          local animspd = norm * 6.0
          render.animator.setSpeed(animator,
                                   animspd + render.animator.getDefaultSpeed(animator))

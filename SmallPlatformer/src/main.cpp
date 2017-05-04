@@ -80,7 +80,11 @@ private:
 	float hitboxRadY;
 	
 	// Handle for script
+	#ifdef LUA_MODE
 	ofLua*      script;
+	#else
+	ofScheme*    script;
+	#endif
 	
 	// Sensors
 	ofAABB*           masterSensor;
@@ -148,17 +152,30 @@ public:
 		AddComponent("RightSensor",  rightSensor);
 		AddComponent("TopSensor",    topSensor);
 
-		script = new ofLua();
-		AddComponent("Lua", script);
 		// Fine description of object behaviour is all
 		// on this script file
-		script->loadfile("res/scripts/Player.lua");
 
+		// Lua
+		#ifdef LUA_MODE
+		script = new ofLua();
+		AddComponent("Lua", script);
+		script->loadfile("res/scripts/Player.lua");
 		ofLuaDefineSymbol("player", this);
+		#else
+		// Scheme
+		script = new ofScheme();
+		AddComponent("Scheme", script);
+		script->loadfile("SmallPlatformer Player", "res/scripts/Player.scm");
+		ofScmDefineSymbol("*player*", this);
+		#endif
 	}
 
 	void unload() {
+		#ifdef LUA_MODE
 		ofLuaUndefine("player");
+		#else
+		ofScmUndefine("*player*");
+		#endif
 		ClearComponents();
 		ofTexturePool::unload(myTexture);
 	}
@@ -274,7 +291,9 @@ int main(int argc, char** argv)
 			"frmrt=60c20m",
 			"vsync=on"});
 	ofMapDefaultsP1();
+	#ifdef LUA_MODE
 	ofSetReplType(ofReplLua);
+	#endif
 	ofCanvasManager::add(new Game);
 	ofGameLoop();
 	ofQuit();

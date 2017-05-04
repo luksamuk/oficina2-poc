@@ -13,7 +13,8 @@ OUT_DIR   = ./bin/Debug/
 CXX_OBJ   = -c
 CXX_FLAGS = -g -Wall
 CXX_OUT   = -o
-OF2_FLAGS   = `oficina2-config --cppflags`
+PROJ_FLAGS =
+OF2_FLAGS   = `oficina2-config --cppflags` $(PROJ_FLAGS)
 OF2_LIBS    = `oficina2-config --libs`
 
 PROJ_LIBS = $(OBJ_DIR)main.o
@@ -29,6 +30,12 @@ FLAGS     = $(CXX_FLAGS) $(OF2_FLAGS) -I$(SRC_DIR) $(GUILE_FLAGS) $(LUA_FLAGS)
 ### Main target
 
 all: debug
+
+luadebug: PROJ_FLAGS += -DLUA_MODE
+luadebug: debug
+
+luarelease: CXX_FLAGS += -DLUA_MODE
+luarelease: release
 
 release: CXX_FLAGS = -O3
 release: OUT_DIR   = ./bin/Release/
