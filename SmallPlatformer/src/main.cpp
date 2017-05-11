@@ -249,10 +249,14 @@ public:
 
 		player = new Player;
 		manager->add(player);
+		watch("Player", ofWatcherEntity, player);
+		watch("Manager", ofWatcherPtr, manager);
 		
 	}
 
 	void unload() {
+		unwatch("Player");
+		unwatch("Manager");
 		delete manager;
 	}
      
@@ -294,7 +298,7 @@ int main(int argc, char** argv)
 	#ifdef LUA_MODE
 	ofSetReplType(ofReplLua);
 	#endif
-	ofCanvasManager::add(new Game);
+	ofCanvasManager::add(new Game, 0, "Game");
 	ofGameLoop();
 	ofQuit();
 	return 0;

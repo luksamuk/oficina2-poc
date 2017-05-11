@@ -103,7 +103,7 @@
 
     ;; Collision detection
     (set! *ground* #f)
-    (let ((all-near (nearest?)))
+    (let ((all-near (get-nearest)))
       (do ((i 0 (1+ i)))
           ((>= i (vector-length all-near)))
         (if (not (propget? 0 (vector-ref all-near i)))
