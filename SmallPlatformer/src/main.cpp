@@ -21,6 +21,7 @@ public:
 		setProperty(2, isJumpThru);
 		setName(isJumpThru ? "Platform" : "Ground");
 		AABB = new ofAABB(glm::vec3(size / 2.0f, 0.0f), glm::vec3(size / 2.0f, 0.5f));
+		AABB->setVisibility(true);
 		AddComponent("AABB", AABB);
 	}
 	
@@ -61,7 +62,7 @@ public:
 								  ? glm::vec4(0.0f, 0.4f, 0.01f, 1.0f)
 								  : glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
 								  mvp * getModelMatrix());
-		//DrawComponents(mvp);
+		DrawComponents(mvp);
 	}
 };
 
@@ -141,6 +142,9 @@ public:
 		leftSensor    = new ofBoundingSphere(glm::vec3(-hitboxRadX, 0.0f, 0.0f), 5.0f);
 		rightSensor   = new ofBoundingSphere(glm::vec3(hitboxRadX, 0.0f, 0.0f), 5.0f);
 		topSensor     = new ofBoundingSphere(glm::vec3(0.0f, -hitboxRadY, 0.0f), 5.0f);
+
+		masterSensor->setVisibility(true);
+		//bottomSensor->setVisibility(true);
 		
 		AddComponent("MasterSensor", masterSensor);
 		AddComponent("BottomSensor", bottomSensor);
@@ -204,7 +208,7 @@ private:
 	Player*           player;
 public:
 	void init() {
-		projection = glm::ortho(0.0f, 640.0f, -360.0f, 0.0f, 1.0f, 10.0f);
+		projection = glm::ortho(0.0f, 640.0f, -360.0f, 0.0f, -100.0f, 100.0f);
 		view = glm::lookAt(glm::vec3(camPos.x, camPos.y, -1.2f),
 						   glm::vec3(camPos.x, camPos.y, 0.0f),
 						   glm::vec3(0.0f, -1.0f, 0.0f));
@@ -292,7 +296,7 @@ public:
 int main(int argc, char** argv)
 {
 	ofInit({"wname=Small Platformer",
-			"frmrt=60c20m",
+			//"frmrt=60c20m",
 			"vsync=on"});
 	ofMapDefaultsP1();
 	#ifdef LUA_MODE

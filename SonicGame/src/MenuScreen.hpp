@@ -8,9 +8,9 @@ class MenuScreen : public oficina::ofCanvas
 {
 protected:
     oficina::ofFont font;
-    ofdword         sel = 1u,
-	            maxsel = 3u,
-	            minsel = 1u;
+    oficina::ofdword sel = 1u,
+	                 maxsel = 3u,
+	                 minsel = 1u;
     glm::mat4 mvp;
 public:
     void init();
@@ -33,9 +33,9 @@ private:
     glm::mat4 title_model;
     glm::mat4 menu_model;
     glm::vec2 menu_pos;
-    ofsbyte   menu_move = 0;
+    oficina::ofsbyte   menu_move = 0;
     oficina::ofPrimitive* quad = nullptr;
-    ofbyte transstType = 0u;
+    oficina::ofbyte transstType = 0u;
     std::string menuOptions[6] = {
         "Press Start Button",
         "     New Game    >",
@@ -45,8 +45,8 @@ private:
         "<      Quit       "
     };
     bool menuSelect = false;
-    ofbyte menuTextSelect = 0u;
-    ofbyte oldSel = 1u;
+    oficina::ofbyte menuTextSelect = 0u;
+    oficina::ofbyte oldSel = 1u;
 public:
     void init();
     void load();

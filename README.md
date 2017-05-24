@@ -10,7 +10,15 @@ with its dependancies.
 SonicGame
 ---------
 A small Sonic replication test intended to prove that I can build a platformer
-with Oficina2.
+with Oficina2. Runs on v2.0.11+.
+
+SmallPlatformer
+----------
+A small example of a platforming game. Runs on v2.0.13+.
+
+Basic3D
+-------
+An example showing 3D models. Runs on v2.0.13+.
 
 License
 -------
