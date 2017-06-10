@@ -9,7 +9,7 @@ int main(int argc, char** argv)
             "wname=OFSONIC THE HEDGEHOG",
             "datad=OFSONIC THE HEDGEHOG",
             "wndsz=720p",
-//            "frmrt=60c",
+            "frmrt=60c",
             "vsync=on"
             });
     oficina::ofMapDefaultsP1();
